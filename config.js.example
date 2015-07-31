@@ -1,0 +1,27 @@
+var config = {};
+
+//https://apps.twitter.com/
+config.twitter = {
+  consumer_key: '',
+  consumer_secret: '',
+  access_token_key: '',
+  access_token_secret: '',
+  callback_url: 'http://127.0.0.1:3000/login/return',
+  access_token_key: '',
+  access_token_secret: ''
+};
+
+//https://www.mapbox.com/help/create-api-access-token/
+config.mapbox = {
+  access_token: ''
+};
+
+//https://www.firebase.com/docs/web/quickstart.html
+config.firebase = {
+  app_url: ''
+}
+
+config.session_secret_key = '(fh8)$4tklp6do=!az^wyuw7q+gv!39n4^uml1+(g22dy*ez#q';
+config.default_link_url = 'https://docs.google.com/forms/';
+
+module.exports = config;
