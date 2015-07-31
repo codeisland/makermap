@@ -43,7 +43,7 @@ html
   body
     #map
     script.
-      L.mapbox.accessToken = <access token>;
+      L.mapbox.accessToken = '<access token>';
       var map = L.mapbox.map('map', 'mapbox.streets', {
       //minZoom: 8,
       maxZoom: 16
@@ -56,11 +56,13 @@ html
     script.
       var socket = io();
       socket.on('tweet', function(tweet) {
-        var marker = L.geoJson(tweet, {
-          onEachFeature: function (feature, layer) {
-            layer.bindPopup(feature.properties.description);
-          }
+        var marker = L.marker(new L.LatLng(tweet.geometry.coordinates[1], tweet.geometry.coordinates[0]), {
+          icon: L.divIcon({
+            html: '<img src="' + tweet.properties.profile_image_url + '"/>',
+            iconSize: [10, 10]
+          })
         });
+        marker.bindPopup(tweet.properties.description);
         markers.addLayer(marker);
       });
 
