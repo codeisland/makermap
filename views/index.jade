@@ -1,0 +1,66 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    title
+    script(src='https://cdn.socket.io/socket.io-1.3.5.js')
+    script.
+        var socket = io();
+        socket.on('tweet', function(tweet) {
+        });
+  body
+
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    title Single marker
+    meta(name='viewport', content='initial-scale=1,maximum-scale=1,user-scalable=no')
+    script(src='https://api.mapbox.com/mapbox.js/v2.2.1/mapbox.js')
+    link(href='https://api.mapbox.com/mapbox.js/v2.2.1/mapbox.css', rel='stylesheet')
+    script(src='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/leaflet.markercluster.js')
+    link(href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.css', rel='stylesheet')
+    link(href='https://api.mapbox.com/mapbox.js/plugins/leaflet-markercluster/v0.4.0/MarkerCluster.Default.css', rel='stylesheet')
+    style.
+      body { margin:0; padding:0; }
+      #map { position:absolute; top:0; bottom:0; width:100%; }
+    script.
+      window.twttr = (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0],
+      t = window.twttr || {};
+      if (d.getElementById(id)) return t;
+      js = d.createElement(s);
+      js.id = id;
+      js.src = "https://platform.twitter.com/widgets.js";
+      fjs.parentNode.insertBefore(js, fjs);
+      t._e = [];
+      t.ready = function(f) {
+      t._e.push(f);
+      };
+      return t;
+      }(document, "script", "twitter-wjs"));
+    script(src='https://cdn.socket.io/socket.io-1.3.5.js')
+  body
+    #map
+    script.
+      L.mapbox.accessToken = <access token>;
+      var map = L.mapbox.map('map', 'mapbox.streets', {
+      //minZoom: 8,
+      maxZoom: 16
+      }).setView([38.91338, -77.03236], 16);
+      var markers = new L.MarkerClusterGroup();
+      markers.on('click', function(event) {
+        twttr.widgets.load();
+      });
+      map.addLayer(markers);
+    script.
+      var socket = io();
+      socket.on('tweet', function(tweet) {
+        var marker = L.geoJson(tweet, {
+          onEachFeature: function (feature, layer) {
+            layer.bindPopup(feature.properties.description);
+          }
+        });
+        markers.addLayer(marker);
+      });
+
