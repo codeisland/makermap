@@ -8,6 +8,7 @@
     "passport": "~0.2.2",
     "passport-twitter": "~1.0.3",
     "express-session": "~1.11.3",
-    "connect-ensure-login": "~0.1.1"
+    "connect-ensure-login": "~0.1.1",
+    "jade": "~1.11.0"
   }
 }

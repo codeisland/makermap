@@ -30,8 +30,6 @@ passport.use(new Strategy({
     return cb(null, profile);
 }));
 
-var default_link_url = config.default_link_url;
-
 var Firebase = require('firebase');
 var firebase_app_url = config.firebase.app_url;
 var geojson_ref = new Firebase(firebase_app_url + 'geojson');
@@ -52,13 +50,17 @@ var twitter_client = new Twitter({
 io.on('connection', function(socket) {
   geojson_ref.once('value', function(dataSnapshot) {
     dataSnapshot.forEach(function(childSnapshot) {
-      socket.emit('tweet', childSnapshot.val());
+      socket.emit('add tweet', childSnapshot.val());
     });
   });
 });
 
-geojson_ref.on('child_added', function(dataSnapshot) {
-  io.emit('tweet', dataSnapshot.val());
+geojson_ref.on('child_added', function(childSnapshot) {
+  io.emit('add tweet', childSnapshot.val());
+});
+
+geojson_ref.on('child_removed', function(oldChildSnapshot) {
+  io.emit('remove tweet', oldChildSnapshot.val());
 });
 
 function get_tweets() {
@@ -74,9 +76,6 @@ last_id_ref.once("value", function(dataSnapshot) {
   }
   twitter_client.get('search/tweets', search, function(error, data, response) {
     data.statuses.forEach(function(tweet) {
-      var user_id = tweet.user.id_str;
-      ref = new Firebase(firebase_app_url + 'link/' + user_id);
-      ref.set(default_link_url);
       var tweet_id = tweet.id_str;
       last_id_ref.once("value", function(dataSnapshot) {
 	  if(dataSnapshot.val() < tweet_id) {
@@ -86,20 +85,28 @@ last_id_ref.once("value", function(dataSnapshot) {
       //https://dev.twitter.com/web/javascript/loading
       twitter_client.get('statuses/oembed', {id: tweet.id_str, omit_script: true}, function(error, oembed, response) {
 	geocoded = false;
-	geojson = {}
+        var geojson = {
+          type: 'Feature',
+          geometry: null,
+            properties: {
+              description: oembed.html,
+              profile_image_url: tweet.user.profile_image_url,
+              twitter_handle: tweet.user.screen_name,
+              tweet_id: tweet_id
+          }
+        };
+        var zipcode = 'N/A';
 	tweet.entities.hashtags.forEach(function(hashtag) {
-	  if(/^\d{5}$/.test(hashtag.text)) { //hashtag appears to be zipcode
-	    mapbox_client.geocodeForward(hashtag.text, function(err, res) {
+          var match = /^[a-zA-Z]{2}(\d{5})(-\d{4}$)?/.exec(hashtag.text); //matches 2 alpha followed by 5 digits then optionally '-' followed by 4 digits
+	  if(match != null) { //hashtag appears to be zipcode, either ZIP or ZIP+4
+            if(match[2] != undefined) { //ZIP+4
+              zipcode = match[1]+ match[2];
+            } else { //ZIP
+              zipcode = match[1];
+            }
+	    mapbox_client.geocodeForward(zipcode, function(err, res) {
 	      if(res.features.length > 0) {
-		geojson = {
-		  type: 'Feature',
-		  geometry: res.features[0].geometry,
-		  properties: {
-		    description: oembed.html,
-                    profile_image_url: tweet.user.profile_image_url,
-		    hidden: false
-		  }
-		}
+		geojson.geometry = res.features[0].geometry;
 		geocoded = true;
 		return;
 	      }
@@ -107,23 +114,19 @@ last_id_ref.once("value", function(dataSnapshot) {
 	  }
 	});
 	if(geocoded == false) {
-	  geojson = { //default if unable to resolve a location
-	    type: 'Feature',
-	    geometry: {
-	    type: "Point",
-	      coordinates: [
-		'-77.0364',
-		'38.8951'
-	      ]
-	    },
-	    properties: {
-	      description: oembed.html,
-              profile_image_url: tweet.user.profile_image_url,
-	      hidden: false
-	    }
+	  geojson.geometry = {
+            type: "Point",
+            coordinates: [
+              '-77.0364',
+              '38.8951'
+	    ]
 	  };
 	}
 	geojson_ref.push(geojson);
+        var user_id = tweet.user.id_str;
+        ref = new Firebase(firebase_app_url + 'link/' + user_id);
+        var link = '';
+        ref.set(link);
       });
     });
   });
@@ -154,7 +157,7 @@ app.get('/form',
       if(link != null) {
         res.redirect(dataSnapshot.val());
       } else {
-        res.redirect(default_link_url);
+        res.redirect('/');
       }
     });
 });

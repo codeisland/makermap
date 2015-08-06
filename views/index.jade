@@ -43,19 +43,20 @@ html
   body
     #map
     script.
-      L.mapbox.accessToken = '<access token>';
+      L.mapbox.accessToken = '';
       var map = L.mapbox.map('map', 'mapbox.streets', {
       //minZoom: 8,
-      maxZoom: 16
-      }).setView([38.91338, -77.03236], 16);
-      var markers = new L.MarkerClusterGroup();
-      markers.on('click', function(event) {
+      maxZoom: 14
+      }).setView([38.8951, -77.0364], 8);
+      map.on('popupopen', function(event) {
         twttr.widgets.load();
       });
+      var markers = new L.MarkerClusterGroup();
       map.addLayer(markers);
     script.
       var socket = io();
-      socket.on('tweet', function(tweet) {
+      var twid_marker = {};
+      socket.on('add tweet', function(tweet) {
         var marker = L.marker(new L.LatLng(tweet.geometry.coordinates[1], tweet.geometry.coordinates[0]), {
           icon: L.divIcon({
             html: '<img src="' + tweet.properties.profile_image_url + '"/>',
@@ -64,5 +65,12 @@ html
         });
         marker.bindPopup(tweet.properties.description);
         markers.addLayer(marker);
+        markers.zoomToShowLayer(marker, function() {
+          marker.openPopup();
+        });
+        twid_marker[tweet.properties.tweet_id] = marker;
+      });
+      socket.on('remove tweet', function(tweet) {
+        markers.removeLayer(twid_marker[tweet.properties.tweet_id]);
       });
 

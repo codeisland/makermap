@@ -22,6 +22,5 @@ config.firebase = {
 }
 
 config.session_secret_key = '(fh8)$4tklp6do=!az^wyuw7q+gv!39n4^uml1+(g22dy*ez#q';
-config.default_link_url = 'https://docs.google.com/forms/';
 
 module.exports = config;
