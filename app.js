@@ -84,18 +84,22 @@ last_id_ref.once("value", function(dataSnapshot) {
       });
       //https://dev.twitter.com/web/javascript/loading
       twitter_client.get('statuses/oembed', {id: tweet.id_str, omit_script: true}, function(error, oembed, response) {
-	geocoded = false;
         var geojson = {
           type: 'Feature',
-          geometry: null,
-            properties: {
-              description: oembed.html,
-              profile_image_url: tweet.user.profile_image_url,
-              twitter_handle: tweet.user.screen_name,
-              tweet_id: tweet_id
+          geometry: {
+            type: "Point",
+            coordinates: []
+          },
+          properties: {
+            description: oembed.html,
+            profile_image_url: tweet.user.profile_image_url,
+            twitter_handle: tweet.user.screen_name,
+            tweet_id: tweet_id
           }
         };
+	var current_geojson_ref = geojson_ref.push(geojson);
         var zipcode = 'N/A';
+        var coords = [];
 	tweet.entities.hashtags.forEach(function(hashtag) {
           var match = /^[a-zA-Z]{2}(\d{5})(-\d{4}$)?/.exec(hashtag.text); //matches 2 alpha followed by 5 digits then optionally '-' followed by 4 digits
 	  if(match != null) { //hashtag appears to be zipcode, either ZIP or ZIP+4
@@ -106,23 +110,17 @@ last_id_ref.once("value", function(dataSnapshot) {
             }
 	    mapbox_client.geocodeForward(zipcode, function(err, res) {
 	      if(res.features.length > 0) {
-		geojson.geometry = res.features[0].geometry;
-		geocoded = true;
-		return;
-	      }
+		coords = res.features[0].geometry.coordinates;
+	      } else {
+	        coords = ['-77.0364', '38.8951'];
+              }
+              current_geojson_ref.child('geometry').update({coordinates: coords});
 	    });
-	  }
+	  } else {
+	    coords = ['-77.0364', '38.8951'];
+            current_geojson_ref.child('geometry').update({coordinates: coords});
+          }
 	});
-	if(geocoded == false) {
-	  geojson.geometry = {
-            type: "Point",
-            coordinates: [
-              '-77.0364',
-              '38.8951'
-	    ]
-	  };
-	}
-	geojson_ref.push(geojson);
         var user_id = tweet.user.id_str;
         ref = new Firebase(firebase_app_url + 'link/' + user_id);
         var link = '';
