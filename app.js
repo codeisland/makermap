@@ -117,8 +117,26 @@ last_id_ref.once("value", function(dataSnapshot) {
               current_geojson_ref.child('geometry').update({coordinates: coords});
 	    });
 	  } else {
-	    coords = ['-77.0364', '38.8951'];
-            current_geojson_ref.child('geometry').update({coordinates: coords});
+            //hashtag of only digits won't be recognized to Twitter, so text is searched
+            var match = /#(\d{5})(?:(-\d{4})\s)?/g.exec(tweet.text); //matches # then 5 digits then optionally '-' followed by 4 digits
+	    if(match != null) { //hashtag appears to be zipcode, either ZIP or ZIP+4
+	      if(match[2] != undefined) { //ZIP+4
+		zipcode = match[1]+ match[2];
+	      } else { //ZIP
+		zipcode = match[1];
+	      }
+	      mapbox_client.geocodeForward(zipcode, function(err, res) {
+		if(res.features.length > 0) {
+		  coords = res.features[0].geometry.coordinates;
+		} else {
+		  coords = ['-77.0364', '38.8951'];
+		}
+		current_geojson_ref.child('geometry').update({coordinates: coords});
+	      });
+	    } else {
+	      coords = ['-77.0364', '38.8951'];
+              current_geojson_ref.child('geometry').update({coordinates: coords});
+            }
           }
 	});
         var user_id = tweet.user.id_str;
